@@ -200,9 +200,8 @@ const GODOT_THREADS_ENABLED = false;
 		const engine = new Engine(GODOT_CONFIG);
 		const pckParts = ['index.pck.part1', 'index.pck.part2'];
 		
-		// Progress tracking variables for the chunk loader
 		const CACHE_NAME = 'godot-pck-cache-v1';
-		let totalBytesExpected = 104857600; // ~100MB fallback approximation
+		let totalBytesExpected = 104857600; 
 		let loadedPartsBytes = {};
 
 		function updateDownloadProgress() {
@@ -229,7 +228,6 @@ const GODOT_THREADS_ENABLED = false;
 			const response = await fetch(part);
 			if (!response.ok) throw new Error(`Could not download ${part}`);
 
-			// Cache cloned response for subsequent visits
 			await cache.put(part, response.clone());
 
 			const contentLength = response.headers.get('content-length');
@@ -273,15 +271,12 @@ const GODOT_THREADS_ENABLED = false;
 
 			console.log("Initializing webassembly binaries and manual preloading sequence...");
 			
-			// 1. Manually initialize the WebAssembly wrapper context first
 			return engine.init(GODOT_CONFIG.executable)
 				.then(() => {
-					// 2. Preload your combined buffer safely into the ready WASM instance environment
 					return engine.preloadFile(combinedArray, "stitched.pck");
 				})
 				.then(() => {
 					console.log("Asset cached locally. Booting core runtime engine parameters...");
-					// 3. Launch the game using start() since the assets are already preloaded inside the context
 					return engine.start({
 						'args': ['--main-pack', 'stitched.pck'],
 						'onProgress': function (current, total) {
@@ -298,6 +293,8 @@ const GODOT_THREADS_ENABLED = false;
 		})
 		.then(() => {
 			setStatusMode('hidden');
+			// Automatically focus the canvas layout window to ensure inputs link instantly without extra clicks
+			document.getElementById('canvas').focus();
 		}, displayFailureNotice);
 	}
 }());
