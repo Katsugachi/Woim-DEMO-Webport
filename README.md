@@ -1,7 +1,7 @@
 # Woim (Webport)
 For game site dev and such, just use woim.html and it should load up fine, do not fork this repo, **LFS WILL fail**. <br><br>
 No crediting required, as long as you use woim.html directly to load the game. <br>
-For users with internet wanting a downloadable copy, download woim.html and double click to run it. More details below. <br>
+For users with internet wanting a downloadable copy, download woim.html and double click to run it. More details below. <br><br>
 A webport of the Woim demo, rebuilt and compiled to run directly inside modern desktop web browsers. 
 <br><br>
 The original desktop build of Woim relies on native system executables and deep Steamworks integrations. This project extracts the compiled assets, strips out the platform-specific dependencies, bypasses background Steam initialization hooks, and repacks the core project files into a standalone WebAssembly format. 
