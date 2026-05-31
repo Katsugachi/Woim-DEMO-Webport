@@ -200,11 +200,67 @@ const GODOT_THREADS_ENABLED = false;
 		const engine = new Engine(GODOT_CONFIG);
 		const pckParts = ['index.pck.part1', 'index.pck.part2'];
 		
+		// Progress tracking variables for the chunk loader
+		const CACHE_NAME = 'godot-pck-cache-v1';
+		let totalBytesExpected = 104857600; // ~100MB fallback approximation
+		let loadedPartsBytes = {};
+
+		function updateDownloadProgress() {
+			let totalLoaded = Object.values(loadedPartsBytes).reduce((a, b) => a + b, 0);
+			if (totalLoaded > 0) {
+				statusProgress.value = totalLoaded;
+				statusProgress.max = Math.max(totalBytesExpected, totalLoaded);
+			}
+		}
+
+		async function fetchWithProgressAndCache(part) {
+			const cache = await caches.open(CACHE_NAME);
+			const cachedResponse = await cache.match(part);
+			
+			if (cachedResponse) {
+				console.log(`Loading ${part} from Cache Storage...`);
+				const buf = await cachedResponse.arrayBuffer();
+				loadedPartsBytes[part] = buf.byteLength;
+				updateDownloadProgress();
+				return buf;
+			}
+
+			console.log(`Downloading ${part} fresh...`);
+			const response = await fetch(part);
+			if (!response.ok) throw new Error(`Could not download ${part}`);
+
+			// Cache cloned response for subsequent visits
+			await cache.put(part, response.clone());
+
+			const contentLength = response.headers.get('content-length');
+			if (contentLength) {
+				totalBytesExpected = parseInt(contentLength, 10) * pckParts.length; 
+			}
+
+			const reader = response.body.getReader();
+			let chunks = [];
+			let partLoaded = 0;
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				chunks.push(value);
+				partLoaded += value.length;
+				loadedPartsBytes[part] = partLoaded;
+				updateDownloadProgress();
+			}
+
+			let partBuffer = new Uint8Array(partLoaded);
+			let offset = 0;
+			for (let chunk of chunks) {
+				partBuffer.set(chunk, offset);
+				offset += chunk.length;
+			}
+			return partBuffer.buffer;
+		}
+
 		console.log("Downloading chunked asset arrays...");
-		Promise.all(pckParts.map(part => fetch(part).then(res => {
-			if (!res.ok) throw new Error(`Could not download ${part}`);
-			return res.arrayBuffer();
-		})))
+		Promise.all(pckParts.map(part => fetchWithProgressAndCache(part)))
 		.then(buffers => {
 			console.log("Assembling binary slices...");
 			let totalLength = buffers.reduce((acc, buf) => acc + buf.byteLength, 0);
