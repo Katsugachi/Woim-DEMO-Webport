@@ -6,7 +6,8 @@ A webport of the Woim demo, rebuilt and compiled to run directly inside modern d
 <br><br>
 The original desktop build of Woim relies on native system executables and deep Steamworks integrations. This project extracts the compiled assets, strips out the platform-specific dependencies, bypasses background Steam initialization hooks, and repacks the core project files into a standalone WebAssembly format. 
 <br><br>
-The live version is hosted via GitHub Pages at: https://katsugachi.github.io/Woim-DEMO-Webport/
+The live version is hosted via GitHub Pages at: https://katsugachi.github.io/Woim-DEMO-Webport/ <br><br>
+Download woim.html: https://github.com/Katsugachi/Woim-DEMO-Webport/releases/download/random/woim.html
 
 ## Technical Architecture
 Converting a native Godot 4 project to run smoothly within a sandboxed browser environment requires several structural adjustments to the original codebase:
