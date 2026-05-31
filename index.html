@@ -116,11 +116,6 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
-// Universal global hook container array declaration to safely preload the assets file buffer inside Emscripten's loop
-var Module = {
-	'preRun': []
-};
-
 (function () {
 	const statusOverlay = document.getElementById('status');
 	const statusProgress = document.getElementById('status-progress');
@@ -219,18 +214,16 @@ var Module = {
 				offset += buf.byteLength;
 			});
 
-			// We write the array data block directly into the virtual filesystem array loop immediately before execution starts
-			Module['preRun'].push(function() {
-				try {
-					FS.createDataFile('/', 'stitched.pck', combinedArray, true, true, true);
-					console.log("Seeded filesystem index entry cleanly.");
-				} catch (fsError) {
-					console.error("Virtual FS generation exception:", fsError);
-				}
-			});
-
 			console.log("Booting canvas runtime container elements...");
 			return engine.startGame({
+				'onInit': function(Module) {
+					try {
+						Module.FS.createDataFile('/', 'stitched.pck', combinedArray, true, true, true);
+						console.log("Seeded filesystem index entry cleanly into active instance.");
+					} catch (fsError) {
+						console.error("Virtual FS generation exception:", fsError);
+					}
+				},
 				'onProgress': function (current, total) {
 					if (current > 0 && total > 0) {
 						statusProgress.value = current;
