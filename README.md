@@ -1,4 +1,4 @@
-# Woim (Webport)
+# WOIM (Webport)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)]()
 [![WebAssembly](https://img.shields.io/badge/WebAssembly-654FF0?style=for-the-badge&logo=webassembly&logoColor=white)]() <br><br>
 ALL CREDIT GOES TOWARDS DOGSPAWN FOR THIS AMAZING GAME :)<br>
