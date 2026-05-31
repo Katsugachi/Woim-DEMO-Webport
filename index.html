@@ -111,10 +111,15 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-// Adjusted configuration removing index.pck from the fileSizes tracker to prevent native fallback fetch attempts
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+// We map the mainPack key name tracker to a dummy target string to break Godot's automated internal 404 network fetch routines
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"mainPack":"stitched.pck"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
+
+// Universal global hook container array declaration to safely preload the assets file buffer inside Emscripten's loop
+var Module = {
+	'preRun': []
+};
 
 (function () {
 	const statusOverlay = document.getElementById('status');
@@ -197,7 +202,6 @@ const engine = new Engine(GODOT_CONFIG);
 	} else {
 		setStatusMode('progress');
 
-		// Custom asset-slice routine to safely load parts below 100MB 
 		const pckParts = ['index.pck.part1', 'index.pck.part2'];
 		
 		console.log("Downloading chunked asset arrays...");
@@ -215,10 +219,17 @@ const engine = new Engine(GODOT_CONFIG);
 				offset += buf.byteLength;
 			});
 
-			// Feed the reconstructed pack array directly into the pre-load engine lifecycle configuration
-			GODOT_CONFIG['mainPack'] = combinedArray;
+			// We write the array data block directly into the virtual filesystem array loop immediately before execution starts
+			Module['preRun'].push(function() {
+				try {
+					FS.createDataFile('/', 'stitched.pck', combinedArray, true, true, true);
+					console.log("Seeded filesystem index entry cleanly.");
+				} catch (fsError) {
+					console.error("Virtual FS generation exception:", fsError);
+				}
+			});
 
-			// Boot engine now that memory states are populated
+			console.log("Booting canvas runtime container elements...");
 			return engine.startGame({
 				'onProgress': function (current, total) {
 					if (current > 0 && total > 0) {
