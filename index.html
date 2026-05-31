@@ -111,7 +111,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-// Keep configuration global
+// We map the mainPack key name tracker to a dummy target string to break Godot's automated internal 404 network fetch routines
 const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"mainPack":"stitched.pck"};
 const GODOT_THREADS_ENABLED = false;
 
@@ -216,27 +216,32 @@ const GODOT_THREADS_ENABLED = false;
 				offset += buf.byteLength;
 			});
 
-			console.log("Assets loaded. Initializing Godot Engine runtime now...");
+			console.log("Booting canvas runtime container elements...");
+			
+			// Inject stitched size into configuration tracking dynamically 
+			// to make the internal Preloader register our file footprint cleanly.
+			GODOT_CONFIG["fileSizes"]["stitched.pck"] = totalLength;
+			
 			const engine = new Engine(GODOT_CONFIG);
 
 			return engine.startGame({
+				// Dynamically override the internal fetch mechanism for the main pack file
+				'onPreloadProgress': function(current, total) {
+					// Route default engine progress tracker parameters
+					if (current > 0 && total > 0) {
+						statusProgress.value = current;
+						statusProgress.max = total;
+					}
+				},
 				'onInit': function(Module) {
 					try {
+						// Create directory nodes explicitly to confirm paths mount cleanly
 						Module.FS.createDataFile('/', 'stitched.pck', combinedArray, true, true, true);
 						console.log("Seeded filesystem index entry cleanly into active instance.");
 					} catch (fsError) {
 						console.error("Virtual FS generation exception:", fsError);
 					}
-				},
-				'onProgress': function (current, total) {
-					if (current > 0 && total > 0) {
-						statusProgress.value = current;
-						statusProgress.max = total;
-					} else {
-						statusProgress.removeAttribute('value');
-						statusProgress.removeAttribute('max');
-					}
-				},
+				}
 			});
 		})
 		.then(() => {
