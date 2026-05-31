@@ -111,6 +111,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
+// We map the mainPack key to our intended filename for the virtual filesystem setup
 const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"mainPack":"stitched.pck"};
 const GODOT_THREADS_ENABLED = false;
 
@@ -196,7 +197,6 @@ const GODOT_THREADS_ENABLED = false;
 	} else {
 		setStatusMode('progress');
 
-		// Explicitly instantiate the Engine here to establish access to the native web APIs
 		const engine = new Engine(GODOT_CONFIG);
 		const pckParts = ['index.pck.part1', 'index.pck.part2'];
 		
@@ -215,15 +215,19 @@ const GODOT_THREADS_ENABLED = false;
 				offset += buf.byteLength;
 			});
 
-			console.log("Registering asset pack array directly into Godot's memory runtime cache...");
+			console.log("Initializing webassembly binaries and manual preloading sequence...");
 			
-			// Formally seed the combined binary file directly into Godot's active instance preloader cache
-			return engine.preloadFile(combinedArray, "stitched.pck")
+			// 1. Manually initialize the WebAssembly wrapper context first
+			return engine.init(GODOT_CONFIG.executable)
 				.then(() => {
-					console.log("Asset cached safely! Booting canvas runtime container elements...");
-					
-					// Fire engine initialization routines safely
-					return engine.startGame({
+					// 2. Preload your combined buffer safely into the ready WASM instance environment
+					return engine.preloadFile(combinedArray, "stitched.pck");
+				})
+				.then(() => {
+					console.log("Asset cached locally. Booting core runtime engine parameters...");
+					// 3. Launch the game using start() since the assets are already preloaded inside the context
+					return engine.start({
+						'args': ['--main-pack', 'stitched.pck'],
 						'onProgress': function (current, total) {
 							if (current > 0 && total > 0) {
 								statusProgress.value = current;
