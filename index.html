@@ -111,7 +111,6 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-// We map the mainPack key to our intended filename for the virtual filesystem setup
 const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"mainPack":"stitched.pck"};
 const GODOT_THREADS_ENABLED = false;
 
@@ -200,27 +199,24 @@ const GODOT_THREADS_ENABLED = false;
 		const engine = new Engine(GODOT_CONFIG);
 		const pckParts = ['index.pck.part1', 'index.pck.part2'];
 		
-		const CACHE_NAME = 'godot-pck-cache-v1';
-		let totalBytesExpected = 104857600; 
-		let loadedPartsBytes = {};
+		const CACHE_NAME = 'godot-pck-cache-v2';
+		let completedParts = 0;
 
-		function updateDownloadProgress() {
-			let totalLoaded = Object.values(loadedPartsBytes).reduce((a, b) => a + b, 0);
-			if (totalLoaded > 0) {
-				statusProgress.value = totalLoaded;
-				statusProgress.max = Math.max(totalBytesExpected, totalLoaded);
-			}
+		// Reusable handler to cleanly run the default loading bar animations
+		function incrementProgress() {
+			completedParts++;
+			statusProgress.value = completedParts;
+			statusProgress.max = pckParts.length;
 		}
 
-		async function fetchWithProgressAndCache(part) {
+		async function fetchAndCachePart(part) {
 			const cache = await caches.open(CACHE_NAME);
 			const cachedResponse = await cache.match(part);
 			
 			if (cachedResponse) {
-				console.log(`Loading ${part} from Cache Storage...`);
+				console.log(`Loading ${part} safely from Cache Storage...`);
 				const buf = await cachedResponse.arrayBuffer();
-				loadedPartsBytes[part] = buf.byteLength;
-				updateDownloadProgress();
+				incrementProgress();
 				return buf;
 			}
 
@@ -228,37 +224,21 @@ const GODOT_THREADS_ENABLED = false;
 			const response = await fetch(part);
 			if (!response.ok) throw new Error(`Could not download ${part}`);
 
+			// Put a clean clone into storage, then read the arrayBuffer directly
 			await cache.put(part, response.clone());
-
-			const contentLength = response.headers.get('content-length');
-			if (contentLength) {
-				totalBytesExpected = parseInt(contentLength, 10) * pckParts.length; 
-			}
-
-			const reader = response.body.getReader();
-			let chunks = [];
-			let partLoaded = 0;
-
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				chunks.push(value);
-				partLoaded += value.length;
-				loadedPartsBytes[part] = partLoaded;
-				updateDownloadProgress();
-			}
-
-			let partBuffer = new Uint8Array(partLoaded);
-			let offset = 0;
-			for (let chunk of chunks) {
-				partBuffer.set(chunk, offset);
-				offset += chunk.length;
-			}
-			return partBuffer.buffer;
+			const buf = await response.arrayBuffer();
+			
+			incrementProgress();
+			return buf;
 		}
 
 		console.log("Downloading chunked asset arrays...");
-		Promise.all(pckParts.map(part => fetchWithProgressAndCache(part)))
+		
+		// Reset loading bar properties cleanly for tracking parts
+		statusProgress.value = 0;
+		statusProgress.max = pckParts.length;
+
+		Promise.all(pckParts.map(part => fetchAndCachePart(part)))
 		.then(buffers => {
 			console.log("Assembling binary slices...");
 			let totalLength = buffers.reduce((acc, buf) => acc + buf.byteLength, 0);
@@ -293,8 +273,9 @@ const GODOT_THREADS_ENABLED = false;
 		})
 		.then(() => {
 			setStatusMode('hidden');
-			// Automatically focus the canvas layout window to ensure inputs link instantly without extra clicks
-			document.getElementById('canvas').focus();
+			// Return operational focus directly to the canvas container
+			const canvas = document.getElementById('canvas');
+			if (canvas) canvas.focus();
 		}, displayFailureNotice);
 	}
 }());
