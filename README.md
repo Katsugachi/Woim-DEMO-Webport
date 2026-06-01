@@ -3,7 +3,7 @@
 [![WebAssembly](https://img.shields.io/badge/WebAssembly-654FF0?style=for-the-badge&logo=webassembly&logoColor=white)]() <br><br>
 ALL CREDIT GOES TOWARDS DOGSPAWN FOR THIS AMAZING GAME :)<br>
 Check out Dogspawn here! : https://dogspawn.net/ <br>
-WOIM: https://store.steampowered.com/app/4272020/WOIM/ <br><br>
+WOIM on Steam: https://store.steampowered.com/app/4272020/WOIM/ <br><br>
 For game site dev and such, just use woim.html and it should load up fine, do not fork this repo, **LFS WILL fail**. <br><br>
 No crediting required, as long as you use woim.html directly to load the game. <br>
 For users with internet wanting a downloadable copy, download woim.html and double click to run it. More details below. <br><br>
