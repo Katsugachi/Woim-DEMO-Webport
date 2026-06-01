@@ -14,13 +14,6 @@ The original desktop build of Woim relies on native system executables and deep 
 The live version is hosted via GitHub Pages at: https://katsugachi.github.io/Woim-DEMO-Webport/ <br><br>
 Download woim.html: https://github.com/Katsugachi/Woim-DEMO-Webport/releases/download/random/woim.html
 
-## Technical Architecture
-Converting a native Godot 4 project to run smoothly within a sandboxed browser environment requires several structural adjustments to the original codebase:
-<br>
-* **Steamworks Bypass:** The native `GodotSteam` GDExtension asset cannot run on web architectures. The background `steamworks.gd` autoload script has been disabled, and interface scripts (such as `main_menu.gd`) were patched with placeholder code to safely ignore achievement and profile tracking updates.
-* **Single-Thread Optimization:** The export uses a single-threaded configuration. This removes the strict requirement for cross-origin isolation headers (SharedArrayBuffer) on the hosting server, ensuring the game runs out of the box on standard web hosts like GitHub Pages.
-* **Storage Re-routing:** Local save data paths (`user://`) are automatically routed through the browser's IndexedDB engine rather than writing directly to the host operating system's local storage disk.
-
 ## Local Installation and Execution
 
 ### Prerequisites
